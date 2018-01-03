@@ -1,6 +1,5 @@
 import edu.wpi.first.wpilibj.PIDSource;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -18,7 +17,7 @@ public class PIDController implements Runnable{
 
 	private Thread thread = new Thread(this);
 
-	private Queue<Double> accumulator = new LinkedList<>();
+	private LinkedList<Double> accumulator = new LinkedList<>();
 
 	public PIDController(double p, double i, double d, PIDSource source) {
 		this.p = p;
@@ -48,14 +47,31 @@ public class PIDController implements Runnable{
 		error = setpoint - currentVal;
 	}
 
-	public double get() {
-		if (autoTune) {
+	private double getIntegral() {
+		return Utility.addArrayElements(accumulator);
+	}
 
+	private double getDerivative() {
+		return (accumulator.peekLast() - accumulator.peekFirst()) / accumulator.size()*UPDATE_RATE; // This may not work
+	}
+
+	public double get() {
+		double output = 0;
+		if (autoTune) {
+			double pTerm = error;
+			double iTerm = (1/tI)*getIntegral();
+			double dTerm = tD * getDerivative();
+
+			output = p * (pTerm + iTerm + dTerm);
 		} else {
 			double pTerm = error * p;
-			double iTerm = Utility.addArrayElements(accumulator) * i;
-			double
+			double iTerm = getIntegral() * i;
+			double dTerm = getDerivative() * d;
+
+			output = pTerm + iTerm + dTerm;
 		}
+
+		return output;
 	}
 
 	public void enable() {
