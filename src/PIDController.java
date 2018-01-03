@@ -1,8 +1,12 @@
 import edu.wpi.first.wpilibj.PIDSource;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class PIDController implements Runnable{
+	private final double UPDATE_RATE = 0.02; // In seconds
+
 	private double p, i, d;
 	private PIDSource source;
 
@@ -14,7 +18,7 @@ public class PIDController implements Runnable{
 
 	private Thread thread = new Thread(this);
 
-	private ArrayList<Double> accumulator = new ArrayList<>();
+	private Queue<Double> accumulator = new LinkedList<>();
 
 	public PIDController(double p, double i, double d, PIDSource source) {
 		this.p = p;
@@ -40,14 +44,17 @@ public class PIDController implements Runnable{
 		this.autoTune = autoTune;
 	}
 
-	private void updateError() {
-		error = setpoint - source.pidGet();
+	private void updateError(double currentVal) {
+		error = setpoint - currentVal;
 	}
 
 	public double get() {
-		updateError();
 		if (autoTune) {
 
+		} else {
+			double pTerm = error * p;
+			double iTerm = Utility.addArrayElements(accumulator) * i;
+			double
 		}
 	}
 
@@ -59,7 +66,6 @@ public class PIDController implements Runnable{
 		thread.interrupt(); // This may or may not work
 	}
 
-
 	@Override
 	/**
 	 * DO NOT RUN THIS MANUALLY
@@ -69,22 +75,18 @@ public class PIDController implements Runnable{
 			// Code here
 			double currentVal = source.pidGet();
 
+			if (accumulator.size() == 10) {
+				accumulator.remove();
+			}
 			accumulator.add(currentVal);
 
-			// If it is the last element
-			if (accumulator.lastIndexOf(currentVal) == accumulator.size() - 1) {
-				double totalVal = Utility.addArrayElements(accumulator);
-				accumulator.clear();
-				accumulator.add(totalVal);
-			}
-
-			
+			updateError(currentVal);
 		}
 	}
 }
 
 class Utility {
-	public static double addArrayElements(ArrayList<Double> arr) {
+	public static double addArrayElements(Queue<Double> arr) {
 		double val = 0;
 		for (double v : arr) {
 			val += v;
